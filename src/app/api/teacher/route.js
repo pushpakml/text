@@ -1,7 +1,6 @@
 import dbConnect from "@/lib/db";
 import Teacher from "@/models/Teacher";
-import fs from "fs/promises";
-import path from "path";
+import { getCloudinary } from "@/lib/cloudinary";
 
 export async function GET() {
     try {
@@ -75,51 +74,40 @@ export async function POST(request) {
                 );
             }
 
-            const uploadDir = path.join(
-                process.cwd(),
-                "public",
-                "uploads",
-                "teachers"
+            const bytes = await image.arrayBuffer();
+            const buffer = Buffer.from(bytes);
+
+            const cloudinary = getCloudinary();
+
+            const uploadResult = await new Promise(
+                (resolve, reject) => {
+                    const uploadStream =
+                        cloudinary.uploader.upload_stream(
+                            {
+                                folder: "texas-academy/teachers",
+                                resource_type: "image",
+                            },
+                            (error, result) => {
+                                if (error) {
+                                    reject(error);
+                                } else {
+                                    resolve(result);
+                                }
+                            }
+                        );
+                    uploadStream.end(buffer);
+                }
             );
 
-            await fs.mkdir(uploadDir, {
-                recursive: true,
-            });
-
-            const extension =
-                path.extname(image.name).toLowerCase();
-
-            const fileName = `${Date.now()}-${Math.round(
-                Math.random() * 1e9
-            )}${extension}`;
-
-            const filePath = path.join(
-                uploadDir,
-                fileName
-            );
-
-            const bytes =
-                await image.arrayBuffer();
-
-            const buffer =
-                Buffer.from(bytes);
-
-            await fs.writeFile(
-                filePath,
-                buffer
-            );
-
-            imagePath =
-                `/uploads/teachers/${fileName}`;
+            imagePath = uploadResult.secure_url;
         }
 
-        const teacher =
-            await Teacher.create({
-                name: name.trim(),
-                subject: subject.trim(),
-                experience: experience.trim(),
-                image: imagePath,
-            });
+        const teacher = await Teacher.create({
+            name: name.trim(),
+            subject: subject.trim(),
+            experience: experience.trim(),
+            image: imagePath,
+        });
 
         return Response.json(
             {

@@ -3,10 +3,6 @@ import { NextResponse } from 'next/server';
 
 const ALLOWED_ADMIN_EMAIL = 'veryv1656@gmail.com';
 
-const clerkClient = createClerkClient({
-  secretKey: process.env.CLERK_SECRET_KEY,
-});
-
 export default clerkMiddleware(async (auth, req) => {
   const { userId } = await auth();
   const { pathname } = req.nextUrl;
@@ -25,6 +21,10 @@ export default clerkMiddleware(async (auth, req) => {
 
   if (userId) {
     try {
+      const clerkClient = createClerkClient({
+        secretKey: process.env.CLERK_SECRET_KEY,
+      });
+
       const user = await clerkClient.users.getUser(userId);
       const primaryEmail = user.emailAddresses?.find(
         (e) => e.id === user.primaryEmailAddressId

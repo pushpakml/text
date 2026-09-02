@@ -1,5 +1,6 @@
 import dbConnect from "@/lib/db";
 import About from "@/models/About";
+import { fileToDataUrl } from "@/lib/imageToDataUrl";
 
 export async function GET(_request, { params }) {
     try {
@@ -44,14 +45,53 @@ export async function PUT(request, { params }) {
 
         const { id } = await params;
 
-        const body = await request.json();
+        const contentType = request.headers.get("content-type") || "";
+        let update = {};
 
-        console.log("Updating About:", id);
-        console.log("Data:", body);
+        if (contentType.includes("multipart/form-data")) {
+            const formData = await request.formData();
+
+            for (const field of ["title", "description", "description1"]) {
+                const value = formData.get(field);
+                if (value !== null) update[field] = String(value).trim();
+            }
+
+            const file = formData.get("image");
+            const result = await fileToDataUrl(file);
+
+            if (result.error) {
+                return Response.json(
+                    { success: false, message: result.error },
+                    { status: 400 }
+                );
+            }
+
+            if (result.dataUrl) {
+                update.image = result.dataUrl;
+            }
+        } else {
+            const body = await request.json();
+
+            for (const field of ["title", "description", "description1", "image"]) {
+                if (body[field] !== undefined && body[field] !== null) {
+                    update[field] =
+                        typeof body[field] === "string"
+                            ? body[field].trim()
+                            : body[field];
+                }
+            }
+        }
+
+        if (Object.keys(update).length === 0) {
+            return Response.json(
+                { success: false, message: "No fields provided" },
+                { status: 400 }
+            );
+        }
 
         const updatedAbout = await About.findByIdAndUpdate(
             id,
-            body,
+            update,
             {
                 new: true,
                 runValidators: true,

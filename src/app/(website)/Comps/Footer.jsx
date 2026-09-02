@@ -7,7 +7,7 @@ function Footer() {
         <div className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* School Info */}
           <div>
-            <img src="photo/logo.jpg" className="w-20 h-20 rounded-full border-4 border-white mb-4" alt="Texas Academy" />
+            <img src="/photo/logo.jpg" className="w-20 h-20 rounded-full border-4 border-white mb-4" alt="Texas Academy" />
             <h2 className="text-2xl font-bold mb-3">
               Texas Academy
             </h2>
@@ -48,16 +48,16 @@ function Footer() {
             </h3>
             <div className="flex gap-4 mt-4">
               <a href="https://www.facebook.com/teksasa.ekedemi" className="w-11 h-11 rounded-full flex items-center justify-center transition">
-                <img src="photo/facebook.avif" />
+                <img src="/photo/facebook.avif" />
               </a>
               <a href="#" className="w-11 h-11 rounded-full flex items-center justify-center transition">
-                <img src="photo/instagram.avif" />
+                <img src="/photo/instagram.avif" />
               </a>
               <a href="https://www.tiktok.com/@texasacademysarlahi?fbclid=IwY2xjawTpDtNwZG9mBWV4dG4DYWVtAjEwAGJyaWQRMUxscWpaaVdWanltTTFmUHVzcnRjBmFwcF9pZBAyMjIwMzkxNzg4MjAwODkyAAEe40JJVExBUKnJl-5EXFfNAWCxG1eOVLetoxgYPoptThScVJlDyQT6EV6vLbs_aem_S1uOlSphgZ6QayrbaDOLjQ" className="w-11 h-11  rounded-full flex items-center justify-center transition">
-                <img src="photo/tiktok.avif" />
+                <img src="/photo/tiktok.avif" />
               </a>
               <a href="#" className="w-11 h-11 rounded-full flex items-center justify-center  transition">
-                <img src="photo/twitter.webp"/>
+                <img src="/photo/twitter.webp"/>
               </a>
             </div>
           </div>

@@ -8,19 +8,63 @@ function page() {
   const [hero, setHero] = useState([null]);
   const [about, setAbout] = useState([null]);
   const [facility, setFacilities] = useState([null]);
-  const [message, setMessage] = useState([null]);
+
+  const [contactForm, setContactForm] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    message: "",
+  });
+  const [sendingContact, setSendingContact] = useState(false);
+  const [contactStatus, setContactStatus] = useState(null);
+
+  const handleContactChange = (field, value) => {
+    setContactForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleContactSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setSendingContact(true);
+      setContactStatus(null);
+
+      await axios.post("/api/contact", contactForm);
+
+      setContactStatus({
+        type: "success",
+        text: "Message sent successfully! We will get back to you soon.",
+      });
+      setContactForm({ name: "", phone: "", email: "", message: "" });
+    } catch (err) {
+      setContactStatus({
+        type: "error",
+        text:
+          err.response?.data?.message ||
+          "Failed to send message. Please try again.",
+      });
+    } finally {
+      setSendingContact(false);
+    }
+  };
 
 
   const fetchData = async () => {
     try {
-      const response = await axios.get("http://localhost:3000/api/hero/6a7ad8c75f5b57855543adae")
-      setHero(response.data.hero);
-      const response1 = await axios.get("http://localhost:3000/api/about/6a7ae0cb5f5b57855543adb1")
-      setAbout(response1.data.about);
-      const response2 = await axios.get("http://localhost:3000/api/facility/6a7ae2f05f5b57855543adb4")
-      setFacilities(response2.data.facility);
-      const response3 = await axios.get("http://localhost:3000/api/message")
-      setMessage(response3.data.message);
+      const [heroRes, aboutRes, facilityRes] = await Promise.allSettled([
+        axios.get("/api/hero"),
+        axios.get("/api/about"),
+        axios.get("/api/facility"),
+      ]);
+
+      if (heroRes.status === "fulfilled") {
+        setHero(heroRes.value.data.hero?.[0] || null);
+      }
+      if (aboutRes.status === "fulfilled") {
+        setAbout(aboutRes.value.data.about?.[0] || null);
+      }
+      if (facilityRes.status === "fulfilled") {
+        setFacilities(facilityRes.value.data.facility?.[0] || null);
+      }
     } catch (error) {
       console.log("failed to fetch hero", error);
     }
@@ -29,7 +73,7 @@ function page() {
   useEffect(() => {
     fetchData();
   }, [])
-  console.log("hero", hero)
+
   return (
     <div>
 
@@ -81,7 +125,7 @@ function page() {
             <div className="bg-white/10 backdrop-blur-md border border-white/20 
                   rounded-xl p-5 text-white">
               <h3 className="text-3xl font-bold text-yellow-400">
-                {hero?.counter}
+                {hero?.counternumber}
               </h3>
               <p className="text-gray-300">
                 {hero?.countertext}
@@ -90,7 +134,7 @@ function page() {
             <div className="bg-white/10 backdrop-blur-md border border-white/20 
                   rounded-xl p-5 text-white">
               <h3 className="text-3xl font-bold text-purple-400">
-                {hero?.counter1}
+                {hero?.counternumber1}
               </h3>
               <p className="text-gray-300">
                 {hero?.countertext1}
@@ -99,7 +143,7 @@ function page() {
             <div className="bg-white/10 backdrop-blur-md border border-white/20 
                   rounded-xl p-5 text-white">
               <h3 className="text-3xl font-bold text-cyan-400">
-                {hero?.counter2}
+                {hero?.counternumber2}
               </h3>
               <p className="text-gray-300">
                 {hero?.countertext2}
@@ -113,7 +157,7 @@ function page() {
       <section className="py-16 bg-white" id='about'>
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
-            <img src="texas/IMG-20251114-WA0012.jpg" className="rounded-3xl shadow-xl w-full h-[400px] object-cover" />
+            <img src={about?.image || "/texas/IMG-20251114-WA0012.jpg"} className="rounded-3xl shadow-xl w-full h-[400px] object-cover" />
           </div>
           <div>
             <h1 className="text-4xl font-bold text-blue-950 mb-5">
@@ -734,38 +778,55 @@ function page() {
               <h2 className="text-2xl font-bold text-blue-950 mb-6">
                 Write Your Message
               </h2>
-              <form className="space-y-5">
+
+              {contactStatus && (
+                <div
+                  className={`mb-5 rounded-xl px-4 py-3 text-sm ${
+                    contactStatus.type === "success"
+                      ? "border border-green-200 bg-green-50 text-green-700"
+                      : "border border-red-200 bg-red-50 text-red-600"
+                  }`}
+                >
+                  {contactStatus.text}
+                </div>
+              )}
+
+              <form className="space-y-5" onSubmit={handleContactSubmit}>
                 <div>
                   <label className="block mb-2 font-semibold text-gray-700">
                     Full Name
                   </label>
-                  <input type="text" placeholder="Enter your full name" className="w-full border text-blue-900 border-gray-300 rounded-xl px-4 py-3 
+                  <input type="text" required placeholder="Enter your full name" value={contactForm.name} onChange={(e) => handleContactChange("name", e.target.value)} className="w-full border text-blue-900 border-gray-300 rounded-xl px-4 py-3 
                   focus:outline-none focus:ring-2 focus:ring-blue-900" />
                 </div>
                 <div>
                   <label className="block mb-2 font-semibold text-gray-700">
                     Contact Number
                   </label>
-                  <input type="tel" placeholder="Enter your contact number" className="w-full border text-blue-900 border-gray-300 rounded-xl px-4 py-3 
+                  <input type="tel" placeholder="Enter your contact number" value={contactForm.phone} onChange={(e) => handleContactChange("phone", e.target.value)} className="w-full border text-blue-900 border-gray-300 rounded-xl px-4 py-3 
                   focus:outline-none focus:ring-2 focus:ring-blue-900" />
                 </div>
                 <div>
                   <label className="block mb-2 font-semibold text-gray-700">
                     Email Address
                   </label>
-                  <input type="email" placeholder="Enter your email address" className="w-full border text-blue-900 border-gray-300 rounded-xl px-4 py-3 
+                  <input type="email" required placeholder="Enter your email address" value={contactForm.email} onChange={(e) => handleContactChange("email", e.target.value)} className="w-full border text-blue-900 border-gray-300 rounded-xl px-4 py-3 
                   focus:outline-none focus:ring-2 focus:ring-blue-900" />
                 </div>
                 <div>
                   <label className="block mb-2 font-semibold text-gray-700">
                     Message
                   </label>
-                  <textarea rows={5} placeholder="Write your message..." className="w-full border text-blue-900 border-gray-300 rounded-xl px-4 py-3 
-                  focus:outline-none focus:ring-2 focus:ring-blue-900" defaultValue={""} />
+                  <textarea rows={5} required placeholder="Write your message..." value={contactForm.message} onChange={(e) => handleContactChange("message", e.target.value)} className="w-full border text-blue-900 border-gray-300 rounded-xl px-4 py-3 
+                  focus:outline-none focus:ring-2 focus:ring-blue-900" />
                 </div>
-                <button className="w-full bg-blue-950 text-white py-4 rounded-xl 
-              font-semibold text-lg hover:bg-blue-800 transition duration-300">
-                  Send Message →
+                <button
+                  type="submit"
+                  disabled={sendingContact}
+                  className="w-full bg-blue-950 text-white py-4 rounded-xl 
+              font-semibold text-lg hover:bg-blue-800 transition duration-300 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {sendingContact ? "Sending..." : "Send Message →"}
                 </button>
               </form>
             </div>

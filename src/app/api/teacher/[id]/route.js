@@ -1,12 +1,6 @@
 import dbConnect from "@/lib/db";
 import Teacher from "@/models/Teacher";
-import fs from "fs/promises";
-import path from "path";
-
-
-// ========================================
-// GET SINGLE TEACHER
-// ========================================
+import { getCloudinary } from "@/lib/cloudinary";
 
 export async function GET(request, { params }) {
     try {
@@ -14,8 +8,7 @@ export async function GET(request, { params }) {
 
         const { id } = await params;
 
-        const teacher =
-            await Teacher.findById(id);
+        const teacher = await Teacher.findById(id);
 
         if (!teacher) {
             return Response.json(
@@ -44,19 +37,13 @@ export async function GET(request, { params }) {
     }
 }
 
-
-// ========================================
-// UPDATE TEACHER
-// ========================================
-
 export async function PUT(request, { params }) {
     try {
         await dbConnect();
 
         const { id } = await params;
 
-        const teacher =
-            await Teacher.findById(id);
+        const teacher = await Teacher.findById(id);
 
         if (!teacher) {
             return Response.json(
@@ -68,20 +55,12 @@ export async function PUT(request, { params }) {
             );
         }
 
-        const formData =
-            await request.formData();
+        const formData = await request.formData();
 
-        const name =
-            formData.get("name");
-
-        const subject =
-            formData.get("subject");
-
-        const experience =
-            formData.get("experience");
-
-        const image =
-            formData.get("image");
+        const name = formData.get("name");
+        const subject = formData.get("subject");
+        const experience = formData.get("experience");
+        const image = formData.get("image");
 
         if (!name || !subject || !experience) {
             return Response.json(
@@ -94,12 +73,7 @@ export async function PUT(request, { params }) {
             );
         }
 
-        let imagePath =
-            teacher.image || "";
-
-        // ========================================
-        // NEW IMAGE
-        // ========================================
+        let imagePath = teacher.image || "";
 
         if (
             image &&
@@ -124,98 +98,58 @@ export async function PUT(request, { params }) {
                 );
             }
 
-            const uploadDir =
-                path.join(
-                    process.cwd(),
-                    "public",
-                    "uploads",
-                    "teachers"
-                );
+            const bytes = await image.arrayBuffer();
+            const buffer = Buffer.from(bytes);
 
-            await fs.mkdir(
-                uploadDir,
-                {
-                    recursive: true,
+            const cloudinary = getCloudinary();
+
+            const uploadResult = await new Promise(
+                (resolve, reject) => {
+                    const uploadStream =
+                        cloudinary.uploader.upload_stream(
+                            {
+                                folder: "texas-academy/teachers",
+                                resource_type: "image",
+                            },
+                            (error, result) => {
+                                if (error) {
+                                    reject(error);
+                                } else {
+                                    resolve(result);
+                                }
+                            }
+                        );
+                    uploadStream.end(buffer);
                 }
             );
 
-            const extension =
-                path.extname(
-                    image.name
-                ).toLowerCase();
-
-            const fileName =
-                `${Date.now()}-${Math.round(
-                    Math.random() * 1e9
-                )}${extension}`;
-
-            const filePath =
-                path.join(
-                    uploadDir,
-                    fileName
-                );
-
-            const bytes =
-                await image.arrayBuffer();
-
-            const buffer =
-                Buffer.from(bytes);
-
-            await fs.writeFile(
-                filePath,
-                buffer
-            );
-
-            imagePath =
-                `/uploads/teachers/${fileName}`;
-
-
-            // ========================================
-            // DELETE OLD IMAGE
-            // ========================================
+            imagePath = uploadResult.secure_url;
 
             if (teacher.image) {
                 try {
-                    const oldImagePath =
-                        path.join(
-                            process.cwd(),
-                            "public",
-                            teacher.image
-                        );
-
-                    await fs.unlink(
-                        oldImagePath
+                    const parts = teacher.image.split("/");
+                    const filenameWithExt =
+                        parts[parts.length - 1];
+                    const publicId = `texas-academy/teachers/${filenameWithExt.split(".")[0]}`;
+                    await cloudinary.uploader.destroy(
+                        publicId
                     );
-                } catch (error) {
-                    console.log(
-                        "Old image not found"
-                    );
+                } catch {
+                    console.log("Old image not found on Cloudinary");
                 }
             }
         }
 
-        // ========================================
-        // UPDATE DATABASE
-        // ========================================
-
-        teacher.name =
-            name.trim();
-
-        teacher.subject =
-            subject.trim();
-
-        teacher.experience =
-            experience.trim();
-
-        teacher.image =
-            imagePath;
+        teacher.name = name.trim();
+        teacher.subject = subject.trim();
+        teacher.experience = experience.trim();
+        teacher.image = imagePath;
 
         await teacher.save();
 
         return Response.json({
             success: true,
-            message:
-                "Teacher updated successfully",
+            message: "Teacher updated successfully",
             teacher,
         });
     } catch (error) {
@@ -231,22 +165,13 @@ export async function PUT(request, { params }) {
     }
 }
 
-
-// ========================================
-// DELETE TEACHER
-// ========================================
-
-export async function DELETE(
-    request,
-    { params }
-) {
+export async function DELETE(request, { params }) {
     try {
         await dbConnect();
 
         const { id } = await params;
 
-        const teacher =
-            await Teacher.findById(id);
+        const teacher = await Teacher.findById(id);
 
         if (!teacher) {
             return Response.json(
@@ -258,32 +183,21 @@ export async function DELETE(
             );
         }
 
-        // ========================================
-        // DELETE IMAGE
-        // ========================================
-
         if (teacher.image) {
             try {
-                const imagePath =
-                    path.join(
-                        process.cwd(),
-                        "public",
-                        teacher.image
-                    );
-
-                await fs.unlink(
-                    imagePath
+                const parts = teacher.image.split("/");
+                const filenameWithExt =
+                    parts[parts.length - 1];
+                const publicId = `texas-academy/teachers/${filenameWithExt.split(".")[0]}`;
+                await cloudinary.uploader.destroy(
+                    publicId
                 );
-            } catch (error) {
-                console.log(
-                    "Image file not found"
-                );
+            } catch {
+                console.log("Image file not found on Cloudinary");
             }
         }
 
-        await Teacher.findByIdAndDelete(
-            id
-        );
+        await Teacher.findByIdAndDelete(id);
 
         return Response.json({
             success: true,

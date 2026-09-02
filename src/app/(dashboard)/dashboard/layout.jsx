@@ -12,6 +12,7 @@ import {
   Images,
   CalendarDays,
   MessageSquare,
+  Mail,
   LogOut,
 } from "lucide-react";
 
@@ -59,6 +60,11 @@ export default function DashboardLayout({ children }) {
       name: "Message",
       href: "/dashboard/message",
       icon: MessageSquare,
+    },
+    {
+      name: "Contact",
+      href: "/dashboard/contact",
+      icon: Mail,
     },
   ];
 

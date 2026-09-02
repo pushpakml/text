@@ -13,15 +13,49 @@ import {
   X,
 } from "lucide-react";
 
+const EMPTY_HERO = {
+  sub_title: "",
+  span: "",
+  span1: "",
+  span2: "",
+  span3: "",
+  description: "",
+  button1: "",
+  button2: "",
+  button3: "",
+  counternumber: "",
+  countertext: "",
+  counternumber1: "",
+  countertext1: "",
+  counternumber2: "",
+  countertext2: "",
+};
+
+const inputClass =
+  "w-full rounded-xl border border-gray-300 px-4 py-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
+const labelClass = "mb-1.5 block text-sm font-medium text-gray-700";
+
+function Field({ label, name, register, placeholder }) {
+  return (
+    <div>
+      <label className={labelClass}>{label}</label>
+      <input
+        type="text"
+        placeholder={placeholder}
+        {...register(name)}
+        className={inputClass}
+      />
+    </div>
+  );
+}
+
 export default function HeroPage() {
   const [heroes, setHeroes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(null);
-
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-
   const [error, setError] = useState("");
 
   const {
@@ -31,35 +65,19 @@ export default function HeroPage() {
     formState: { errors },
   } = useForm();
 
-  // ========================================
-  // FETCH HEROES
-  // ========================================
-
   const fetchHeroes = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const response = await axios.get(
-        "/api/hero"
-      );
+      const response = await axios.get("/api/hero");
+      const heroData = response.data?.hero;
 
-      const heroData =
-        response.data?.hero;
-
-      if (Array.isArray(heroData)) {
-        setHeroes(heroData);
-      } else if (heroData) {
-        setHeroes([heroData]);
-      } else {
-        setHeroes([]);
-      }
-    } catch (error) {
-      console.error(error);
-
+      setHeroes(Array.isArray(heroData) ? heroData : []);
+    } catch (err) {
+      console.error(err);
       setError(
-        error.response?.data?.message ||
-          "Failed to load heroes."
+        err.response?.data?.message || "Failed to load heroes."
       );
     } finally {
       setLoading(false);
@@ -70,37 +88,20 @@ export default function HeroPage() {
     fetchHeroes();
   }, []);
 
-  // ========================================
-  // OPEN ADD FORM
-  // ========================================
-
   const handleAdd = () => {
     setEditingId(null);
-
-    reset({
-      title: "",
-      description: "",
-    });
-
+    reset(EMPTY_HERO);
     setShowForm(true);
     setError("");
   };
-
-  // ========================================
-  // OPEN EDIT FORM
-  // ========================================
 
   const handleEdit = async (id) => {
     try {
       setSaving(true);
       setError("");
 
-      const response = await axios.get(
-        `/api/hero/${id}`
-      );
-
-      const hero =
-        response.data?.hero;
+      const response = await axios.get(`/api/hero/${id}`);
+      const hero = response.data?.hero;
 
       if (!hero) {
         setError("Hero not found.");
@@ -109,28 +110,22 @@ export default function HeroPage() {
 
       setEditingId(hero._id);
 
-      reset({
-        title: hero.title || "",
-        description:
-          hero.description || "",
+      const values = {};
+      Object.keys(EMPTY_HERO).forEach((key) => {
+        values[key] = hero[key] || "";
       });
 
+      reset(values);
       setShowForm(true);
-    } catch (error) {
-      console.error(error);
-
+    } catch (err) {
+      console.error(err);
       setError(
-        error.response?.data?.message ||
-          "Failed to load hero."
+        err.response?.data?.message || "Failed to load hero."
       );
     } finally {
       setSaving(false);
     }
   };
-
-  // ========================================
-  // CREATE / UPDATE
-  // ========================================
 
   const onSubmit = async (data) => {
     try {
@@ -138,156 +133,76 @@ export default function HeroPage() {
       setError("");
 
       if (editingId) {
-        // UPDATE
-
-        await axios.put(
-          `/api/hero/${editingId}`,
-          {
-            title: data.title,
-            description:
-              data.description,
-          }
-        );
-
-        alert(
-          "Hero updated successfully!"
-        );
+        await axios.put(`/api/hero/${editingId}`, data);
+        alert("Hero updated successfully!");
       } else {
-        // CREATE
-
-        await axios.post(
-          "/api/hero",
-          {
-            title: data.title,
-            description:
-              data.description,
-          }
-        );
-
-        alert(
-          "Hero created successfully!"
-        );
+        await axios.post("/api/hero", data);
+        alert("Hero created successfully!");
       }
 
       await fetchHeroes();
-
       closeForm();
-    } catch (error) {
-      console.error(error);
-
+    } catch (err) {
+      console.error(err);
       setError(
-        error.response?.data?.message ||
-          "Something went wrong."
+        err.response?.data?.message || "Something went wrong."
       );
     } finally {
       setSaving(false);
     }
   };
 
-  // ========================================
-  // DELETE
-  // ========================================
-
   const handleDelete = async (id) => {
-    const confirmed =
-      window.confirm(
-        "Are you sure you want to delete this hero?"
-      );
-
-    if (!confirmed) return;
+    if (!window.confirm("Are you sure you want to delete this hero?")) return;
 
     try {
       setDeleting(id);
       setError("");
 
-      await axios.delete(
-        `/api/hero/${id}`
-      );
-
-      setHeroes((prev) =>
-        prev.filter(
-          (hero) =>
-            hero._id !== id
-        )
-      );
-
-      alert(
-        "Hero deleted successfully!"
-      );
-    } catch (error) {
-      console.error(error);
-
+      await axios.delete(`/api/hero/${id}`);
+      setHeroes((prev) => prev.filter((hero) => hero._id !== id));
+    } catch (err) {
+      console.error(err);
       setError(
-        error.response?.data?.message ||
-          "Failed to delete hero."
+        err.response?.data?.message || "Failed to delete hero."
       );
     } finally {
       setDeleting(null);
     }
   };
 
-  // ========================================
-  // CLOSE FORM
-  // ========================================
-
   const closeForm = () => {
     setShowForm(false);
     setEditingId(null);
-
-    reset({
-      title: "",
-      description: "",
-    });
+    reset(EMPTY_HERO);
   };
-
-  // ========================================
-  // LOADING
-  // ========================================
 
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-100">
         <div className="flex items-center gap-3 text-gray-600">
-          <Loader2
-            size={25}
-            className="animate-spin text-blue-600"
-          />
-
+          <Loader2 size={25} className="animate-spin text-blue-600" />
           Loading heroes...
         </div>
       </div>
     );
   }
 
-  // ========================================
-  // PAGE
-  // ========================================
-
   return (
     <div className="min-h-screen bg-gray-100 p-6 md:p-10">
-
       <div className="mx-auto max-w-6xl">
 
-        {/* ================================= */}
-        {/* HEADER */}
-        {/* ================================= */}
-
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
               Hero Section
             </h1>
-
             <p className="mt-1 text-gray-500">
               Manage your website hero content.
             </p>
           </div>
 
           <div className="flex gap-3">
-
-            {/* REFRESH */}
-
             <button
               onClick={fetchHeroes}
               disabled={loading}
@@ -295,33 +210,20 @@ export default function HeroPage() {
             >
               <RefreshCw
                 size={18}
-                className={
-                  loading
-                    ? "animate-spin"
-                    : ""
-                }
+                className={loading ? "animate-spin" : ""}
               />
-
               Refresh
             </button>
-
-            {/* ADD */}
 
             <button
               onClick={handleAdd}
               className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700"
             >
               <Plus size={19} />
-
               Add Hero
             </button>
-
           </div>
         </div>
-
-        {/* ================================= */}
-        {/* ERROR */}
-        {/* ================================= */}
 
         {error && (
           <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-red-600">
@@ -329,229 +231,139 @@ export default function HeroPage() {
           </div>
         )}
 
-        {/* ================================= */}
-        {/* HERO TABLE */}
-        {/* ================================= */}
-
         {heroes.length === 0 ? (
-
           <div className="rounded-2xl border border-gray-200 bg-white p-12 text-center">
-
             <div className="mb-4 flex justify-center">
-
               <div className="rounded-full bg-gray-100 p-4">
-
-                <ImageIcon
-                  size={32}
-                  className="text-gray-400"
-                />
-
+                <ImageIcon size={32} className="text-gray-400" />
               </div>
-
             </div>
-
             <h2 className="text-xl font-semibold text-gray-800">
               No Hero Found
             </h2>
-
             <p className="mb-6 mt-2 text-gray-500">
-              You haven't created a hero section yet.
+              You haven&apos;t created a hero section yet.
             </p>
-
             <button
               onClick={handleAdd}
               className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-white hover:bg-blue-700"
             >
               <Plus size={18} />
-
               Create Hero
             </button>
-
           </div>
-
         ) : (
+          <div className="space-y-6">
 
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+            {heroes.map((hero, index) => (
+              <div
+                key={hero._id}
+                className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
+              >
+                <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+                  <h2 className="font-semibold text-gray-900">
+                    Hero #{index + 1}
+                  </h2>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEdit(hero._id)}
+                      disabled={saving}
+                      className="flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-100 disabled:opacity-50"
+                    >
+                      <Pencil size={16} />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(hero._id)}
+                      disabled={deleting === hero._id}
+                      className="flex items-center gap-2 rounded-lg bg-red-50 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-100 disabled:opacity-50"
+                    >
+                      {deleting === hero._id ? (
+                        <Loader2 size={16} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={16} />
+                      )}
+                      Delete
+                    </button>
+                  </div>
+                </div>
 
-            <div className="border-b px-6 py-5">
+                <div className="grid grid-cols-1 gap-x-8 gap-y-4 px-6 py-5 md:grid-cols-2 lg:grid-cols-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-gray-400">Badge</p>
+                    <p className="mt-1 text-gray-800">{hero.sub_title || "—"}</p>
+                  </div>
 
-              <h2 className="font-semibold text-gray-900">
-                Hero Content
-              </h2>
+                  <div className="lg:col-span-2">
+                    <p className="text-xs uppercase tracking-wide text-gray-400">Headline</p>
+                    <p className="mt-1 font-medium text-gray-800">
+                      {[hero.span, hero.span1, hero.span2, hero.span3]
+                        .filter(Boolean)
+                        .join(" ") || "—"}
+                    </p>
+                  </div>
 
-              <p className="mt-1 text-sm text-gray-500">
-                {heroes.length}{" "}
-                {heroes.length === 1
-                  ? "hero"
-                  : "heroes"}
-              </p>
+                  <div className="md:col-span-2 lg:col-span-3">
+                    <p className="text-xs uppercase tracking-wide text-gray-400">Description</p>
+                    <p className="mt-1 text-gray-800">{hero.description || "—"}</p>
+                  </div>
 
-            </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-gray-400">Buttons</p>
+                    <p className="mt-1 text-gray-800">
+                      {[hero.button1, hero.button2, hero.button3]
+                        .filter(Boolean)
+                        .join(", ") || "—"}
+                    </p>
+                  </div>
 
-            <div className="overflow-x-auto">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-gray-400">Stat 1</p>
+                    <p className="mt-1 text-gray-800">
+                      {hero.counternumber || hero.countertext
+                        ? `${hero.counternumber || ""} ${hero.countertext || ""}`.trim()
+                        : "—"}
+                    </p>
+                  </div>
 
-              <table className="w-full">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-gray-400">Stat 2</p>
+                    <p className="mt-1 text-gray-800">
+                      {hero.counternumber1 || hero.countertext1
+                        ? `${hero.counternumber1 || ""} ${hero.countertext1 || ""}`.trim()
+                        : "—"}
+                    </p>
+                  </div>
 
-                <thead className="border-b bg-gray-50">
-
-                  <tr>
-
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">
-                      #
-                    </th>
-
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">
-                      Title
-                    </th>
-
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">
-                      Description
-                    </th>
-
-                    <th className="px-6 py-4 text-right text-sm font-semibold text-gray-600">
-                      Actions
-                    </th>
-
-                  </tr>
-
-                </thead>
-
-                <tbody className="divide-y divide-gray-100">
-
-                  {heroes.map(
-                    (hero, index) => (
-
-                      <tr
-                        key={hero._id}
-                        className="hover:bg-gray-50"
-                      >
-
-                        <td className="px-6 py-5 text-gray-500">
-                          {index + 1}
-                        </td>
-
-                        <td className="px-6 py-5">
-
-                          <p className="font-semibold text-gray-900">
-                            {hero.title ||
-                              "No title"}
-                          </p>
-
-                        </td>
-
-                        <td className="max-w-xl px-6 py-5">
-
-                          <p className="line-clamp-2 text-gray-500">
-                            {hero.description ||
-                              "No description"}
-                          </p>
-
-                        </td>
-
-                        <td className="px-6 py-5">
-
-                          <div className="flex justify-end gap-2">
-
-                            {/* EDIT */}
-
-                            <button
-                              onClick={() =>
-                                handleEdit(
-                                  hero._id
-                                )
-                              }
-                              disabled={
-                                saving
-                              }
-                              className="rounded-lg bg-blue-50 p-2.5 text-blue-600 hover:bg-blue-100 disabled:opacity-50"
-                              title="Edit"
-                            >
-                              <Pencil
-                                size={18}
-                              />
-                            </button>
-
-                            {/* DELETE */}
-
-                            <button
-                              onClick={() =>
-                                handleDelete(
-                                  hero._id
-                                )
-                              }
-                              disabled={
-                                deleting ===
-                                hero._id
-                              }
-                              className="rounded-lg bg-red-50 p-2.5 text-red-600 hover:bg-red-100 disabled:opacity-50"
-                              title="Delete"
-                            >
-
-                              {deleting ===
-                              hero._id ? (
-                                <Loader2
-                                  size={18}
-                                  className="animate-spin"
-                                />
-                              ) : (
-                                <Trash2
-                                  size={18}
-                                />
-                              )}
-
-                            </button>
-
-                          </div>
-
-                        </td>
-
-                      </tr>
-
-                    )
-                  )}
-
-                </tbody>
-
-              </table>
-
-            </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-gray-400">Stat 3</p>
+                    <p className="mt-1 text-gray-800">
+                      {hero.counternumber2 || hero.countertext2
+                        ? `${hero.counternumber2 || ""} ${hero.countertext2 || ""}`.trim()
+                        : "—"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
 
           </div>
-
         )}
-
       </div>
 
-      {/* ================================= */}
-      {/* FORM MODAL */}
-      {/* ================================= */}
-
       {showForm && (
-
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-
-          <div className="w-full max-w-xl overflow-hidden rounded-2xl bg-white shadow-2xl">
-
-            {/* MODAL HEADER */}
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 py-10">
+          <div className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
 
             <div className="flex items-center justify-between border-b px-6 py-5">
-
               <div>
-
                 <h2 className="text-xl font-bold text-gray-900">
-                  {editingId
-                    ? "Edit Hero"
-                    : "Add Hero"}
+                  {editingId ? "Edit Hero" : "Add Hero"}
                 </h2>
-
                 <p className="mt-1 text-sm text-gray-500">
-                  {editingId
-                    ? "Update your hero content."
-                    : "Create new hero content."}
+                  All fields are optional — fill what you need.
                 </p>
-
               </div>
-
               <button
                 type="button"
                 onClick={closeForm}
@@ -559,87 +371,74 @@ export default function HeroPage() {
               >
                 <X size={22} />
               </button>
-
             </div>
 
-            {/* FORM */}
-
             <form
-              onSubmit={handleSubmit(
-                onSubmit
-              )}
-              className="space-y-5 p-6"
+              onSubmit={handleSubmit(onSubmit)}
+              className="space-y-8 p-6"
             >
 
-              {/* TITLE */}
+              <section className="space-y-4">
+                <h3 className="border-b pb-2 text-sm font-bold uppercase tracking-wide text-gray-500">
+                  Badge &amp; Headline
+                </h3>
 
-              <div>
-
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Hero Title
-                </label>
-
-                <input
-                  type="text"
-                  placeholder="Enter hero title"
-                  {...register(
-                    "title",
-                    {
-                      required:
-                        "Title is required",
-                    }
-                  )}
-                  className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                <Field
+                  label="Badge Text (small text above headline)"
+                  name="sub_title"
+                  register={register}
+                  placeholder="e.g. Welcome to Texas Academy"
                 />
 
-                {errors.title && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {
-                      errors.title
-                        .message
-                    }
-                  </p>
-                )}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <Field label="Span (word 1)" name="span" register={register} placeholder="Shaping" />
+                  <Field label="Span 1 (word 2)" name="span1" register={register} placeholder="Bright" />
+                  <Field label="Span 2 (word 3)" name="span2" register={register} placeholder="Futures" />
+                  <Field label="Span 3 (highlighted)" name="span3" register={register} placeholder="Together" />
+                </div>
 
-              </div>
+                <div>
+                  <label className={labelClass}>Description</label>
+                  <textarea
+                    rows={3}
+                    {...register("description")}
+                    className={`${inputClass} resize-none`}
+                  />
+                </div>
+              </section>
 
-              {/* DESCRIPTION */}
+              <section className="space-y-4">
+                <h3 className="border-b pb-2 text-sm font-bold uppercase tracking-wide text-gray-500">
+                  Buttons
+                </h3>
 
-              <div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <Field label="Button 1" name="button1" register={register} placeholder="Get Started" />
+                  <Field label="Button 2" name="button2" register={register} placeholder="Learn More" />
+                  <Field label="Button 3" name="button3" register={register} placeholder="Contact Us" />
+                </div>
+              </section>
 
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Description
-                </label>
+              <section className="space-y-4">
+                <h3 className="border-b pb-2 text-sm font-bold uppercase tracking-wide text-gray-500">
+                  Stats
+                </h3>
 
-                <textarea
-                  rows={5}
-                  placeholder="Enter hero description"
-                  {...register(
-                    "description",
-                    {
-                      required:
-                        "Description is required",
-                    }
-                  )}
-                  className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                />
-
-                {errors.description && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {
-                      errors
-                        .description
-                        .message
-                    }
-                  </p>
-                )}
-
-              </div>
-
-              {/* BUTTONS */}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <Field label="Stat 1 Number" name="counternumber" register={register} placeholder="500+" />
+                  <Field label="Stat 1 Label" name="countertext" register={register} placeholder="Students" />
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <Field label="Stat 2 Number" name="counternumber1" register={register} placeholder="50+" />
+                  <Field label="Stat 2 Label" name="countertext1" register={register} placeholder="Teachers" />
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <Field label="Stat 3 Number" name="counternumber2" register={register} placeholder="20+" />
+                  <Field label="Stat 3 Label" name="countertext2" register={register} placeholder="Years" />
+                </div>
+              </section>
 
               <div className="flex justify-end gap-3 border-t pt-5">
-
                 <button
                   type="button"
                   onClick={closeForm}
@@ -654,28 +453,15 @@ export default function HeroPage() {
                   disabled={saving}
                   className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-
-                  {saving && (
-                    <Loader2
-                      size={18}
-                      className="animate-spin"
-                    />
-                  )}
-
-                  {editingId
-                    ? "Update Hero"
-                    : "Create Hero"}
-
+                  {saving && <Loader2 size={18} className="animate-spin" />}
+                  {editingId ? "Update Hero" : "Create Hero"}
                 </button>
-
               </div>
 
             </form>
 
           </div>
-
         </div>
-
       )}
 
     </div>
