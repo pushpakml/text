@@ -17,6 +17,7 @@ export default async function dbConnect() {
   const MONGODB_URI = process.env.MONGODB_URI;
 
   if (!MONGODB_URI) {
+    console.error("MONGODB_URI env var is undefined. Loaded keys:", Object.keys(process.env).filter(k => k.includes("MONGO")));
     throw new Error("MONGODB_URI is missing");
   }
 
